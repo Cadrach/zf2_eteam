@@ -45,7 +45,7 @@ class TeamController extends AbstractActionController
             $team = new Team();
             
             $form->setInputFilter($team->getInputFilter());
-            $form->setData($request->post());
+            $form->setData($request->getPost());
             if ($form->isValid()) { 
                 $team->populate($form->getData()); 
                 $this->getEntityManager()->persist($team);
@@ -74,7 +74,7 @@ class TeamController extends AbstractActionController
         
         $request = $this->getRequest();
         if ($request->isPost()) {
-            $form->setData($request->post());
+            $form->setData($request->getPost());
             if ($form->isValid()) {
                 $form->bindValues();
                 $this->getEntityManager()->flush();
@@ -99,9 +99,9 @@ class TeamController extends AbstractActionController
 
         $request = $this->getRequest();
         if ($request->isPost()) {
-            $del = $request->post()->get('del', 'No');
+            $del = $request->getPost()->get('del', 'No');
             if ($del == 'Yes') {
-                $id = (int)$request->post()->get('id');
+                $id = (int)$request->getPost()->get('id');
                 $team = $this->getEntityManager()->find('Team\Entity\Team', $id);
                 if ($team) {
                     $this->getEntityManager()->remove($team);

@@ -78,6 +78,7 @@ class Team implements InputFilterAwareInterface
     {
         $this->id = $data['id'];
         $this->name = $data['name'];
+        $this->shortname = $data['shortname'];
     }
 
     public function setInputFilter(InputFilterInterface $inputFilter)
@@ -102,6 +103,25 @@ class Team implements InputFilterAwareInterface
 
             $inputFilter->add($factory->createInput(array(
                 'name'     => 'name',
+                'required' => true,
+                'filters'  => array(
+                    array('name' => 'StripTags'),
+                    array('name' => 'StringTrim'),
+                ),
+                'validators' => array(
+                    array(
+                        'name'    => 'StringLength',
+                        'options' => array(
+                            'encoding' => 'UTF-8',
+                            'min'      => 1,
+                            'max'      => 100,
+                        ),
+                    ),
+                ),
+            )));
+
+            $inputFilter->add($factory->createInput(array(
+                'name'     => 'shortname',
                 'required' => true,
                 'filters'  => array(
                     array('name' => 'StripTags'),
