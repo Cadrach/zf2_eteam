@@ -1,0 +1,30 @@
+<?php
+// module/Team/view/team/team/index.phtml:
+
+$title = 'My teams';
+$this->headTitle($title);
+?>
+<h1><?php echo $this->escapeHtml($title); ?></h1>
+<p>
+    <a href="<?php echo $this->url('team', array('action'=>'add'));?>">Add new team</a>
+</p>
+
+<table class="table">
+<tr>
+    <th>Name</th>
+    <th>Shortname</th>
+    <th>&nbsp;</th>
+</tr>
+<?php foreach ($teams as $team) : ?>
+<tr>
+    <td><?php echo $this->escapeHtml($team->name);?></td>
+    <td><?php echo $this->escapeHtml($team->shortname);?></td>
+    <td>
+        <a href="<?php echo $this->url('team',
+            array('action'=>'edit', 'id' => $team->id));?>">Edit</a>
+        <a href="<?php echo $this->url('team',
+            array('action'=>'delete', 'id' => $team->id));?>">Delete</a>
+    </td>
+</tr>
+<?php endforeach; ?>
+</table>
