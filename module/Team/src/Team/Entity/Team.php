@@ -2,11 +2,14 @@
 
 namespace Team\Entity;
 
-use Doctrine\ORM\Mapping as ORM;
 use Zend\InputFilter\InputFilter;
 use Zend\InputFilter\Factory as InputFactory;
 use Zend\InputFilter\InputFilterAwareInterface;
 use Zend\InputFilter\InputFilterInterface; 
+
+use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\Mapping\OneToMany;
+
 
 /**
  * A team.
@@ -36,6 +39,22 @@ class Team implements InputFilterAwareInterface
      * @ORM\Column(type="string")
      */
     protected $shortname;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    protected $lgp_pageId;
+
+    /**
+     * @ORM\Column(type="integer")
+     */
+    protected $lgp_regionId;    
+
+    /**
+     * @var \Doctrine\Common\Collections\ArrayCollection
+     * @OneToMany(targetEntity="Rooster", mappedBy="team")
+     */
+    protected $roosters;
 
     /**
      * Magic getter to expose protected properties.
