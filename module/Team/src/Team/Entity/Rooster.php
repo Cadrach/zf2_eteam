@@ -44,6 +44,16 @@ class Rooster
     protected $team;
 
     /**
+     * @ORM\Column(type="date") 
+     */
+    protected $dateEnd;
+
+    /**
+     * @ORM\Column(type="date") 
+     */
+    protected $dateStart;
+
+    /**
      * Magic getter to expose protected properties.
      *
      * @param string $property
@@ -73,5 +83,14 @@ class Rooster
     public function getArrayCopy() 
     {
         return get_object_vars($this);
+    }
+    
+    /**
+     * 
+     * @return bool
+     */
+    public function isActive()
+    {
+        return $this->dateEnd ? false:true;
     }
 }

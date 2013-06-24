@@ -46,6 +46,11 @@ class Team implements InputFilterAwareInterface
     protected $lgp_pageId;
 
     /**
+     * @ORM\Column(type="date") 
+     */
+    protected $dateCreated;
+
+    /**
      * @ORM\Column(type="integer")
      */
     protected $lgp_regionId;    

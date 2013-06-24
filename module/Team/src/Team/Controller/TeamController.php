@@ -27,6 +27,21 @@ class TeamController extends AbstractActionController
     {
         return $this->getEntityManager()->getRepository(str_replace('\Controller', '', __NAMESPACE__) . "\\Entity\\" . $entity)->findOneById($id);
     }
+
+    public function findOneBy($entity, $field, $value)
+    {
+        return $this->getEntityManager()->getRepository(str_replace('\Controller', '', __NAMESPACE__) . "\\Entity\\" . $entity)->{'findOneBy' . ucfirst($field)}($value);
+    }
+
+    public function findBy($entity, $field, $value)
+    {
+        return $this->getEntityManager()->getRepository(str_replace('\Controller', '', __NAMESPACE__) . "\\Entity\\" . $entity)->{'findBy' . ucfirst($field)}($value);
+    }
+    
+    public function dump($var)
+    {
+        return \Doctrine\Common\Util\Debug::dump($var);
+    }
     
     public function setEntityManager(EntityManager $em)
     {
@@ -53,7 +68,9 @@ class TeamController extends AbstractActionController
 //            CURLOPT_COOKIEFILE => $cookie,
 //            CURLOPT_COOKIEJAR => $cookie,
         );
-
+        
+        echo "Fetching $url<br/>\n";
+        
         $ch = curl_init();
         curl_setopt_array($ch, ($options + $defaults));
         if( ! $result = curl_exec($ch))
@@ -220,31 +237,117 @@ class TeamController extends AbstractActionController
     public function fetchOneAction()
     {
         $teamId = 125;
+        $date = new \DateTime;
+
         $team = $this->findOne('Team', $teamId);
         
         $teamLeaguepediaId = $team->lgp_pageId;
         $page = $this->curlFetch('pageids='.$teamLeaguepediaId.'&prop=revisions&rvprop=content');
         
-//        echo '<pre>';
-//        print_r($page);
-        
-        $regexp = "/{{listplayer\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|{{\{1}}}/";
+        //Team Page Content
         $content = $page['query']['pages'][$teamLeaguepediaId]['revisions'][0]['*'];
-
+                
+        //Team creation date
+        $regexp = "/\|created= ([0-9\-]*)/";
+        preg_match($regexp, $content, $matches);
+        if(isset($matches[1]) && !$team->dateCreated)
+        {
+            $team->dateCreated = new \DateTime($matches[1]);
+            $this->getEntityManager()->persist($team);
+        }
+               
+        //Rooster
+        $regexp = "/{{listplayer\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|?([^|]*)\}}/";
         preg_match_all($regexp, $content, $matches);
         
         foreach($matches[1] as $k=>$name)
         {
-            $player = new Player;
-            $player->name = $name;
+            if($name == 'InGameName')
+            {
+                //Blank line, ignore
+                continue;
+            }
+            
+            //Fetching player
+            $player = $this->findOneBy('Player', 'name', $name);
+            
+            //If does not exist, create it
+            if( ! $player)
+            {
+                echo "Creating $name<br/>";
+                $player = new Player;
+                $player->name = $name;
+            }
+            
+            //Update Player information
             $player->realname = $matches[3][$k];
             $player->country = $matches[2][$k];
             $this->getEntityManager()->persist($player);
             
-            $rooster = new Rooster;
+            //Checking Activity & role
+            $lastField = $matches[5][$k];
+            $isActive = true;
+            if(strpos($lastField, 'newteam') !== false)
+            {
+                $isActive = false;
+            }
+            $role = $matches[4][$k];
+            
+            
+            //Fetching rooster
+            $roosters = $this->findBy('Rooster', 'player', $player);
+            
+            $rooster = false;
+            if(count($roosters) > 0)
+            {
+                echo count($roosters);
+                foreach($roosters as $rooster)
+                {
+                    if($rooster->isActive())
+                    {
+                        if($rooster->team->id == $team->id && $isActive && $role == $rooster->role)
+                        {
+                            //nothing to do, use this rooster
+                        }
+                        else if($role != $rooster->role)
+                        {
+                            $rooster->dateEnd = $date;
+                            $this->getEntityManager()->persist($rooster);
+                            $rooster = new Rooster;
+                            $rooster->dateStart = $date;
+                            $rooster->role = $role;
+                        }
+                        else
+                        {
+                            //End of rooster, will create another bellow
+                            $rooster->dateEnd = $date;
+                            $this->getEntityManager()->persist($rooster);
+                            $rooster = false;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            if( ! $rooster)
+            {
+                //Create rooster if none
+                $rooster = new Rooster;
+                $rooster->dateStart = $team->dateCreated;
+                $rooster->role = $role;
+            }
+            
+            //Update rooster information
             $rooster->player = $player;
             $rooster->team = $team;
-            $rooster->role = $matches[4][$k];
+            
+            //Quit team today if inactive
+            if( ! $isActive)
+            {
+                $rooster->dateEnd = $date;
+            }
+            
+            //Save rooster
             $this->getEntityManager()->persist($rooster);
         }
         
